@@ -1,43 +1,39 @@
-import sqlite3
-import telebot
+import os
+import telegram
+from flask import Flask, request
+from telegram.ext import Dispatcher, MessageHandler, Filters
 
-TOKEN = "5154427208:AAGeGh83cboYUe8oelrCex41dkyYM0IDBtE"
-bot = telebot.TeleBot(TOKEN)
+# Initial Flask app
+app = Flask(__name__)
 
-conn = sqlite3.connect('db/database.db', check_same_thread=False)
-cursor = conn.cursor()
+# 設定你的token
+bot = telegram.Bot(token=('你的token'))
+bot.send_message(chat_id = '你的ID', text ='你可以開始了')
 
-def db_table_val(user_id: int, user_name: str, user_surname: str, username: str):
-    cursor.execute('INSERT INTO test (user_id, user_name, user_surname, username) VALUES (?, ?, ?, ?)', (user_id, user_name, user_surname, username))
-    conn.commit()
+@app.route('/hook', methods=['POST'])
+def webhook_handler():
+    """Set route /hook with POST method will trigger this method."""
+    if request.method == "POST":
+        update = telegram.Update.de_json(request.get_json(force=True), bot)
 
-@bot.message_handler(commands=['start'])
-def start_message(message):
-    bot.send_message(message.chat.id, 'Welcome!')
+        # Update dispatcher process that handler to process this message
+        dispatcher.process_update(update)
+    return 'ok'
 
-@bot.message_handler(content_types=['text'])
-def get_text_messages(message):
-    if message.text.lower() == 'Hi!':
-        bot.send_message(message.chat.id, 'Hi! You are cool!')
-        
-        us_id = message.from_user.id
-        us_name = message.from_user.first_name
-        us_sname = message.from_user.last_name
-        username = message.from_user.username
-        
-        db_table_val(user_id=us_id, user_name=us_name, user_surname=us_sname, username=username)
 
-@bot.message_handler(commands=['newrm'])
-def step_Set_Rm(message):
-    cid = message.chat.id
-    userRm = message.text
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM test")
-    users_list = cursor.fetchall()
-    bot.send_message(users_list, userRm)
-    conn.commit()
-    conn.close()
-    bot.send_message(message.chat.id, 'Отправлено!')
+def reply_handler(bot, update):
+    """自動回復"""
+    text = update.message.text
+    update.message.reply_text(text)
 
-bot.polling(none_stop=True)
+# New a dispatcher for bot
+dispatcher = Dispatcher(bot, None)
+
+# Add handler for handling message, there are many kinds of message. For this handler, it particular handle text
+# message.
+dispatcher.add_handler(MessageHandler(Filters.text, reply_handler))
+
+if __name__ == "__main__":
+    # Running server
+    port = int(os.environ.get('PORT', 27017))
+    app.run(host='0.0.0.0', port=port)
