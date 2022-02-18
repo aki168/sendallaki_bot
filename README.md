@@ -1,2 +1,0 @@
-# sendallaki_bot
-TEST
